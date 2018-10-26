@@ -545,16 +545,18 @@ class CBD(BaseBlock):
         blocks = self.getBlocks()
         depGraph = DepGraph()
 
+        accept_cbd(self)
+        
+        def accept_cbd(cbd):
+            for block in cbd.getBlocks():
+                if isinstance(block, CBD):
+                    accept_cbd(block)
+                accept_cbd(cbd)
+
+
         def add_to_graph(block):
             depGraph.addMember(block)
             depGraph.setDependency(block, block.getDependencies(curIteration), curIteration)
-
-        all_blocks = []
-        for block_2 in blocks:
-            if isinstance(block_2,CBD):
-                for block_3 in block_2.getBlocks():
-                    add_to_graph(block_3)
-            add_to_graph(block_2)
 
         #pass
         # TO IMPLEMENT
