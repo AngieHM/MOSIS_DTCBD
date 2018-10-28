@@ -541,28 +541,33 @@ class CBD(BaseBlock):
          Use the curIteration to differentiate between the first and other iterations
          Watch out for dependencies with sub-models.
         """
-
         blocks = self.getBlocks()
         depGraph = DepGraph()
 
-        accept_cbd(self)
-        
+        # recursively build a list of basic blocks that are contained in a CBD
+        # by flattening CBDs recursively (CBDs also need to be added as they
+        # themselves have connections to other blocks/CBDs which correspond to
+        # dependencies)
+        # the DepGraph will actually mark dependencies between CBDs I/O blocks
+        # and other blocks instead of the CBDs themselves (CBDs are not part of
+        # the depGraph)
         def accept_cbd(cbd):
             for block in cbd.getBlocks():
+                #l.append(block)
+                for depblock in block.getDependencies(curIteration):
+                    depGraph.setDependency(block, depblock, curIteration)
                 if isinstance(block, CBD):
                     accept_cbd(block)
-                accept_cbd(cbd)
 
-
-        def add_to_graph(block):
+        # add all blocks in CBD to the DepGraph
+        for block in blocks:
             depGraph.addMember(block)
-            depGraph.setDependency(block, block.getDependencies(curIteration), curIteration)
 
-        #pass
-        # TO IMPLEMENT
-        # hints: use depGraph.setDependency(block, block_it_depends_on)
-        #        use the getDependencies that is implemented in each specific block.
-        #
+        # now set dependencies. Dependencies between blocks contained in lower
+        # level CBDs also need to be added.
+        #worklist = []
+        accept_cbd(self)
+
         return depGraph
 
     def __computeBlocks(self, sortedGraph, depGraph, curIteration):
