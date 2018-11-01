@@ -252,7 +252,7 @@ class DelayBlock(BaseBlock):
         if curIteration == 0:
             return [self._linksIn["IC"].block]
         else:
-            return []
+            return [y.block for (x,y) in self._linksIn.iteritems() if y.block != self._linksIn["IC"].block ]
         #pass
 
     def compute(self, curIteration):
