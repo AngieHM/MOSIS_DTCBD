@@ -203,8 +203,8 @@ class GenericBlock(BaseBlock):
         return self.__block_operator
 
     def compute(self, curIteration):
-        # TO IMPLEMENT
-        pass
+        f = getattr(math, self.__block_operator)
+        self.appendToSignal(f(self.getInputSignal(curIteration, "IN1").value))
 
     def __repr__(self):
         repr = BaseBlock.__repr__(self)
@@ -779,7 +779,29 @@ class DerivatorBlock(CBD):
     """
     def __init__(self, block_name):
         CBD.__init__(self, block_name, ["IN1", "delta_t", "IC"], ["OUT1"])
-        #TO IMPLEMENT
+        self.addBlock(AdderBlock(block_name="sum1"))
+        self.addBlock(AdderBlock(block_name="sum"))
+        self.addBlock(NegatorBlock(block_name="negator2"))
+        self.addBlock(NegatorBlock(block_name="negator"))
+        self.addBlock(ProductBlock(block_name="product1"))
+        self.addBlock(ProductBlock(block_name="product2"))
+        self.addBlock(InverterBlock(block_name="inverter"))
+        self.addBlock(DelayBlock(block_name="delay"))
+
+        self.addConnection("IC", "product1")
+        self.addConnection("delta_t", "product1")
+        self.addConnection("product1", "negator")
+        self.addConnection("negator", "sum")
+        self.addConnection("IN1", "sum")
+        self.addConnection("sum", "delay",input_port_name="IC")
+        self.addConnection("IN1", "delay")
+        self.addConnection("delay", "negator2")
+        self.addConnection("negator2", "sum1")
+        self.addConnection("IN1", "sum1")
+        self.addConnection("delta_t","inverter")
+        self.addConnection("sum1", "product2")
+        self.addConnection("inverter","product2")
+        self.addConnection("product2", "OUT1")
 
 class IntegratorBlock(CBD):
     """
@@ -788,6 +810,27 @@ class IntegratorBlock(CBD):
     def __init__(self, block_name):
         CBD.__init__(self, block_name, ["IN1", "delta_t", "IC"], ["OUT1"])
         # TO IMPLEMENT
+        self.addBlock(DelayBlock("delay1"))
+        self.addBlock(DelayBlock("delay2"))
+        self.addBlock(ProductBlock("mult1"))
+        self.addBlock(ProductBlock("mult2"))
+        self.addBlock(AdderBlock("add"))
+        self.addBlock(InverterBlock("invert"))
+        self.addBlock(ConstantBlock("constant",0.0))
+
+        self.addConnection("IN1","delay1")
+        self.addConnection("delay1","mult1")
+        self.addConnection("mult1","add")
+        self.addConnection("add","delay2")
+        self.addConnection("delay2","add")
+        self.addConnection("constant","delay2",input_port_name="IC")
+        self.addConnection("delta_t","mult1")
+        self.addConnection("delta_t","invert")
+        self.addConnection("invert","mult2")
+        self.addConnection("IC","mult2")
+        self.addConnection("mult2","delay1",input_port_name="IC")
+        self.addConnection("add","OUT1")
+
 
 
 """ This module implements a dependency graph

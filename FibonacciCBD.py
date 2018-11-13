@@ -208,6 +208,6 @@ for timeValuePair in cbd.getSignal("FibonacciDividerOut"):
 output_file("./fibonacci_divider.html", title="fibonacci divider")
 p = figure(title="Fibonacci Divider", x_axis_label='time', y_axis_label='N')
 p.circle(x=times, y=output, legend="Fibonacci Divided numbers")
-#show(p)
+show(p)
 
 createLatex(cbd)
