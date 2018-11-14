@@ -6,8 +6,8 @@ InputLink = namedtuple("InputLink", ["block", "output_port"])
 Signal = namedtuple("Signal", ["time", "value"])
 def enum(**enums):
             return type('Enum', (), enums)
-level = enum(WARNING=1, ERROR=2, FATAL=3)
-epsilon = 0.001
+level = enum(WARNING=1, ERROR=2, FATAL=3)	
+epsilon = 0.001		
 
 class BaseBlock:
     """
@@ -69,8 +69,8 @@ class BaseBlock:
         return self.__signals[name_output] if name_output != None else self.__signals["OUT1"]
 
     def getDependencies(self, curIteration):
-        """ Returns a list of Blocks which this block depends on """
-        return [ y.block for (x,y) in self._linksIn.iteritems() ]
+        return [y.block for (x,y) in self._linksIn.iteritems()]
+
 
     def getBlockConnectedToInput(self, input_port):
         return self._linksIn[input_port]
@@ -137,6 +137,8 @@ class ConstantBlock(BaseBlock):
 
     def compute(self, curIteration):
         self.appendToSignal(self.__value)
+        # TO IMPLEMENT
+        pass
 
     def __repr__(self):
         return BaseBlock.__repr__(self) + "  Value = " + str(self.getValue()) + "\n"
@@ -149,8 +151,8 @@ class NegatorBlock(BaseBlock):
         BaseBlock.__init__(self, block_name, ["IN1"], ["OUT1"])
 
     def compute(self, curIteration):
-        self.appendToSignal(self.getInputSignal(curIteration, "IN1").value * -1)
-        pass
+        self.appendToSignal((self.getInputSignal(curIteration, "IN1").value)*(-1))
+        #pass
 
 class InverterBlock(BaseBlock):
     """
@@ -160,7 +162,8 @@ class InverterBlock(BaseBlock):
         BaseBlock.__init__(self, block_name, ["IN1"], ["OUT1"])
 
     def compute(self, curIteration):
-        self.appendToSignal(1.0 / self.getInputSignal(curIteration, "IN1").value)
+        self.appendToSignal(1/(self.getInputSignal(curIteration, "IN1").value))
+        #pass
 
 class AdderBlock(BaseBlock):
     """
@@ -170,8 +173,8 @@ class AdderBlock(BaseBlock):
         BaseBlock.__init__(self, block_name, ["IN1", "IN2"], ["OUT1"])
 
     def	compute(self, curIteration):
-        self.appendToSignal(self.getInputSignal(curIteration, "IN1").value +
-                            self.getInputSignal(curIteration, "IN2").value )
+        self.appendToSignal((self.getInputSignal(curIteration, "IN1").value)+(self.getInputSignal(curIteration, "IN2").value))
+        #pass
 
 class ProductBlock(BaseBlock):
     """
@@ -181,8 +184,8 @@ class ProductBlock(BaseBlock):
         BaseBlock.__init__(self, block_name, ["IN1", "IN2"], ["OUT1"])
 
     def	compute(self, curIteration):
-        self.appendToSignal(self.getInputSignal(curIteration, "IN1").value *
-                            self.getInputSignal(curIteration, "IN2").value )
+        self.appendToSignal((self.getInputSignal(curIteration, "IN1").value) * (self.getInputSignal(curIteration, "IN2").value))
+        #pass
 
 class GenericBlock(BaseBlock):
     """
@@ -219,8 +222,9 @@ class RootBlock(BaseBlock):
         BaseBlock.__init__(self, block_name, ["IN1", "IN2"], ["OUT1"])
 
     def compute(self, curIteration):
-        self.appendToSignal(math.pow(self.getInputSignal(curIteration, "IN1").value,
-                                     1.0 / float(self.getInputSignal(curIteration, "IN2").value)))
+        # TO IMPLEMENT
+        self.appendToSignal((self.getInputSignal(curIteration, "IN1").value) ** (1/float(self.getInputSignal(curIteration, "IN2").value)))
+        #pass
 
 class ModuloBlock(BaseBlock):
     """
@@ -230,8 +234,8 @@ class ModuloBlock(BaseBlock):
         BaseBlock.__init__(self, block_name, ["IN1", "IN2"], ["OUT1"])
 
     def compute(self, curIteration):
-        self.appendToSignal(self.getInputSignal(curIteration, "IN1").value %
-                            self.getInputSignal(curIteration, "IN2").value )
+        self.appendToSignal((self.getInputSignal(curIteration, "IN1").value) % (self.getInputSignal(curIteration, "IN2").value))
+        #pass
 
 class DelayBlock(BaseBlock):
     """
@@ -243,12 +247,15 @@ class DelayBlock(BaseBlock):
         self.__values = []
 
     def getDependencies(self, curIteration):
-        # This is a helper function you can use to create the dependency graph
+        # TO IMPLEMENT: This is a helper function you can use to create the dependency graph
         # Treat dependencies differently. For instance, at the first iteration (curIteration == 0), the block only depends on the IC;
         if curIteration == 0:
             return [self._linksIn["IC"].block]
         else:
             return []
+            #Creates an assertion error
+            #return [y.block for (x,y) in self._linksIn.iteritems() if y.block != self._linksIn["IC"].block ]
+        #pass
 
     def compute(self, curIteration):
         if curIteration == 0:
@@ -546,11 +553,13 @@ class CBD(BaseBlock):
         # the DepGraph will actually mark dependencies between CBDs I/O blocks
         # and other blocks instead of the CBDs themselves (CBDs are not part of
         # the depGraph)
-        def build_depworklist(cbd, l):
+        def accept_cbd(cbd):
             for block in cbd.getBlocks():
-                l.append(block)
+                #l.append(block)
+                for depblock in block.getDependencies(curIteration):
+                    depGraph.setDependency(block, depblock, curIteration)
                 if isinstance(block, CBD):
-                    build_depworklist(block, l)
+                    accept_cbd(block)
 
         # add all blocks in CBD to the DepGraph
         for block in blocks:
@@ -558,11 +567,8 @@ class CBD(BaseBlock):
 
         # now set dependencies. Dependencies between blocks contained in lower
         # level CBDs also need to be added.
-        worklist = []
-        build_depworklist(self, worklist)
-        for block in worklist:
-            for depblock in block.getDependencies(curIteration):
-                    depGraph.setDependency(block, depblock, curIteration)
+        #worklist = []
+        accept_cbd(self)
 
         return depGraph
 
@@ -602,28 +608,25 @@ class CBD(BaseBlock):
         If the loop is linear return True
         Else: call exit(1) to exit the simulation with exit code 1
         """
-        for block in strongComponent:
-            if block.getBlockType() == "AdderBlock":
-                continue
-            elif block.getBlockType() == "ProductBlock":
+        #TO IMPLEMENT
+        for (i,block) in enumerate(strongComponent):
+            if block.getBlockType() == "ProductBlock":
                 i1 = block.getBlockConnectedToInput("IN1").block
                 i2 = block.getBlockConnectedToInput("IN2").block
                 if i1 in strongComponent and i2 in strongComponent:
                     return False
-                continue
-            elif block.getBlockType() == "NegatorBlock":
-                continue
-            elif block.getBlockType() == "InputPortBlock":
-                continue
-            elif block.getBlockType() == "OutputPortBlock":
-                continue
-            elif block.getBlockType() == "WireBlock":
-                continue
-            elif block.getBlockType() == "DelayBlock":
-                continue
-            else:
+                else:
+                    return True
+            elif block.getBlockType() == "RootBlock":
                 return False
-        return True
+            elif block.getBlockType() == "InverterBlock":
+                return False
+            elif block.getBlockType() == "DerivatorBlock":
+                return False
+            elif block.getBlockType() == "IntegratorBlock":
+                return False
+            else:
+                return True
 
     def __constructLinearInput(self, strongComponent, curIteration):
         """
@@ -776,31 +779,29 @@ class DerivatorBlock(CBD):
     """
     def __init__(self, block_name):
         CBD.__init__(self, block_name, ["IN1", "delta_t", "IC"], ["OUT1"])
-        #TO IMPLEMENT
+        self.addBlock(AdderBlock(block_name="sum1"))
+        self.addBlock(AdderBlock(block_name="sum"))
+        self.addBlock(NegatorBlock(block_name="negator2"))
+        self.addBlock(NegatorBlock(block_name="negator"))
+        self.addBlock(ProductBlock(block_name="product1"))
+        self.addBlock(ProductBlock(block_name="product2"))
+        self.addBlock(InverterBlock(block_name="inverter"))
+        self.addBlock(DelayBlock(block_name="delay"))
 
-        self.addBlock(AdderBlock("add2"))
-        self.addBlock(AdderBlock("add1"))
-        self.addBlock(DelayBlock("delay"))
-        self.addBlock(NegatorBlock("negator1"))
-        self.addBlock(NegatorBlock("negator2"))
-        self.addBlock(ProductBlock("multiply"))
-        self.addBlock(InverterBlock("invert"))
-        self.addBlock(ProductBlock("multiply2"))
-
-        self.addConnection("IN1","delay")
-        self.addConnection("IN1","add1")
-        self.addConnection("delay","negator1")
-        self.addConnection("negator1","add1")
-        self.addConnection("add1","multiply2")
-        self.addConnection("delta_t","invert")
-        self.addConnection("invert","multiply2")
-        self.addConnection("add2", "delay",input_port_name="IC")
-        self.addConnection("IC","multiply")
-        self.addConnection("delta_t","multiply")
-        self.addConnection("multiply","negator2")
-        self.addConnection("negator2","add2")
-        self.addConnection("IN1","add2")
-        self.addConnection("multiply2","OUT1")
+        self.addConnection("IC", "product1")
+        self.addConnection("delta_t", "product1")
+        self.addConnection("product1", "negator")
+        self.addConnection("negator", "sum")
+        self.addConnection("IN1", "sum")
+        self.addConnection("sum", "delay",input_port_name="IC")
+        self.addConnection("IN1", "delay")
+        self.addConnection("delay", "negator2")
+        self.addConnection("negator2", "sum1")
+        self.addConnection("IN1", "sum1")
+        self.addConnection("delta_t","inverter")
+        self.addConnection("sum1", "product2")
+        self.addConnection("inverter","product2")
+        self.addConnection("product2", "OUT1")
 
 class IntegratorBlock(CBD):
     """
@@ -1103,3 +1104,16 @@ class DepGraph:
                 self.__dfsCollect(dependent, component, curIt)
 
             component.append(object)
+
+
+
+
+
+
+
+
+
+
+
+
+
