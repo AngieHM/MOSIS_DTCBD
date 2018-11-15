@@ -1,0 +1,15 @@
+KP, KI, KD -> Cost
+200,0,0         -> 15701.05
+100,100,100     -> Simulation halted (Displacement > 0.4 or Velocity < 0.0)
+200,10,10       -> 3092.98
+200,15,5        -> 1976.63
+200,20,0        -> 1418.34
+200,100,20      -> 277.93
+150,100,50      -> 296.54
+150,150,50      -> Simulation halted (Displacement > 0.4 or Velocity < 0.0)
+150,125,50      -> Simulation halted (Displacement > 0.4 or Velocity < 0.0)
+200,125,50      -> Simulation halted (Displacement > 0.4 or Velocity < 0.0)
+200,100,50      -> 279.08
+200,75,50       -> 355.59
+200,100,15      -> 277.93
+200,100,25      -> 277.93

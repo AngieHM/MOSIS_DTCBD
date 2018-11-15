@@ -167,8 +167,8 @@ class PIDController(CBD):
 
         self.addBlock(ConstantBlock(block_name="zero", value=0.0))
         self.addBlock(ConstantBlock(block_name="Kp", value=200.0))
-        self.addBlock(ConstantBlock(block_name="Ki", value=0.0))
-        self.addBlock(ConstantBlock(block_name="Kd", value=0.0))
+        self.addBlock(ConstantBlock(block_name="Ki", value=100.0))
+        self.addBlock(ConstantBlock(block_name="Kd", value=25.0))
 
         self.addBlock(ProductBlock(block_name="KPProduct"))
         self.addBlock(ProductBlock(block_name="KIProduct"))
@@ -236,7 +236,7 @@ class Testing(CBD):
         CBD.__init__(self,
                      block_name,
                      input_ports=[],
-                     output_ports=["VTrain", "XPassenger", "ATrain", "IdealTrainVelocity"])
+                     output_ports=["VTrain", "XPassenger", "ATrain", "IdealTrainVelocity", "Cost"])
 
         self.addBlock(Time(block_name="time"))
         self.addBlock(ComputerBlock(block_name="computer"))
@@ -244,9 +244,9 @@ class Testing(CBD):
         self.addBlock(PIDController(block_name="PIDController"))
         self.addBlock(Plant(block_name="Plant"))
         self.addBlock(NegatorBlock(block_name="plantNegator"))
-
         self.addBlock(DerivatorBlock(block_name="Derivative"))
         self.addBlock(ConstantBlock(block_name="zero",value=0.0))
+        self.addBlock(CostFunctionBlock(block_name="CostFunction"))
 
         # ComputerBlock
         self.addConnection("time", "computer", input_port_name="IN1", output_port_name="Out")
@@ -271,11 +271,18 @@ class Testing(CBD):
         self.addConnection("time","Derivative", input_port_name="delta_t" ,output_port_name="OutDelta")
         self.addConnection("zero","Derivative", input_port_name="IC")
 
+        #CostFunction
+        self.addConnection("computer","CostFunction",input_port_name="InVi")
+        self.addConnection("Plant", "CostFunction", input_port_name="InVTrain", output_port_name="VTrain")
+        self.addConnection("time","CostFunction",input_port_name="InDelta",output_port_name="OutDelta")
+        self.addConnection("Plant", "CostFunction", input_port_name="InXPerson", output_port_name="XPassenger")
+
         # Output
         self.addConnection("Plant", "VTrain", output_port_name="VTrain")
         self.addConnection("Plant", "XPassenger", output_port_name="XPassenger")
         self.addConnection("Derivative","ATrain")
         self.addConnection("computer", "IdealTrainVelocity")
+        self.addConnection("CostFunction","Cost",output_port_name="OutCost")
 
 cbd = Testing("driverLessTrain")
 # draw(cbd, "driverLessTrain.dot")
@@ -291,6 +298,7 @@ VTrainOutput = []
 IdealVelocityOutput = []
 XPassengeOutput = []
 ATrainOutput = []
+costOutput = []
 
 for timeValuePair in cbd.getSignal("VTrain"):
     times.append(timeValuePair.time)
@@ -305,6 +313,9 @@ for timeValuePair in cbd.getSignal("XPassenger"):
 for timeValuePair in cbd.getSignal("ATrain"):
     ATrainOutput.append(timeValuePair.value)
 
+for timeValuePair in cbd.getSignal("Cost"):
+    costOutput.append(timeValuePair.value)
+
 output_file("./trainVelocity.html", title="Train Velocity")
 trainVelocityFigure = figure(title="Train Velocity", x_axis_label='time', y_axis_label='speed (m/s)')
 trainVelocityFigure.line(x=times, y=VTrainOutput, legend="Actual Velocity", color="BLUE")
@@ -316,3 +327,8 @@ passengerDisplacementFigure = figure(title="Passenger Displacement", x_axis_labe
 passengerDisplacementFigure.line(x=times, y=XPassengeOutput, legend="Passenger Displacement (in meters)", color="RED")
 passengerDisplacementFigure.line(x=times, y=ATrainOutput, legend="Train Acceleration (m/s^2)", color="BLUE")
 show(passengerDisplacementFigure)
+
+output_file("./cost.html", title="Cost")
+costFigure = figure(title="Cost", x_axis_label='time', y_axis_label='cost')
+costFigure.line(x=times, y=costOutput, legend="Cost", color="BLUE")
+show(costFigure)
